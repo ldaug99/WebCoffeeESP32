@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="description" content="Web interface for WebCoffee">
+	<meta name="keywords" content="HTML,CSS,JavaScript">
+	<meta name="author" content="ldaug99">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script src="myScript.js"></script>
+	<link rel="stylesheet" href="styles.css">
+	<title>WebCoffee</title>
+</head>
+<body>
+	<h1 id="header">WebCoffee Settings</h1>
+	<h2 id="subheader">Time settings</h2>
+	<p id="normalText">Current time: time goes here</p>
+	<p id="normalTest">Date: date goes here</p>
+	<form>
+		<label for="ftimezone">Timezone:</label>
+		<input type="text" id="ftimezone" name="ftimezone" value="GMT+1">
+		<input type="submit" onclick="onButtonSubmit(ftimezone)">
+	</form>
+		
+</body>
+</html>
+

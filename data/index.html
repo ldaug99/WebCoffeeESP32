@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="description" content="Web interface for WebCoffee">
+	<meta name="keywords" content="HTML,CSS,JavaScript">
+	<meta name="author" content="ldaug99">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script src="myScript.js"></script>
+	<link rel="stylesheet" href="styles.css">
+	<title>WebCoffee</title>
+</head>
+<body onload="updateHTML();">
+	<h1 id="header">WebCoffee Interface</h1>
+	<h2 id="subheader">Coffee maker settings</h2>
+	<p id="normalText">Current state: <span id="coffeeState">Off</span></p>
+	<button type="button" id="coffeeButton" value="coffeeState=%COFFEESTATE%" onclick="apiRequest(HTTP_POST, this.value);">Start coffee maker</button>
+	<h2 id="subheader">Alarm settings</h2>
+	<p>Set new alarm</p>
+	<form action="/action_page.php" method="get" id="form1">
+		<label for="fname">Alarm time:</label>
+		<input type="text" id="fname" name="fname"><br><br>
+	</form>
+	<button type="submit" form="form1" value="Submit">Submit</button>
+	<p></p>
+	<button type="button" onclick="goToSettings()">Go to settings</button>
+</body>
+</html>
+

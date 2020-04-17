@@ -1,0 +1,3 @@
+[submodule "lib/ESPWebManager"]
+	path = lib/ESPWebManager
+	url = https://github.com/ldaug99/ESPWebManager.git
