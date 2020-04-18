@@ -92,12 +92,16 @@ void IRAM_ATTR autoTurnOffISR() {
 	apiKeywords[0].keyValue.boolValue = false;
 	digitalWrite(heaterPin, LOW);
 	apiKeywords[1].keyValue.boolValue = false;
+	timerEnd(isrTurnOffTimer);
+	isrTurnOffTimer = NULL;
+	Serial.println("Auto turn off triggered");
 }
 
 
 // Start auto turn off timer
 void startAutoTurnOffTimer() {
-	if (isrTurnOffTimer != NULL) {
+	if (isrTurnOffTimer == NULL) {
+		Serial.println("Starting auto turn off timer");
 		isrTurnOffTimer = timerBegin(0, 80, true); // Initialize timer (Timer nr, clock divider, countup), timer counts every microsecond
 		timerAttachInterrupt(isrTurnOffTimer, autoTurnOffISR, true); // Attach isr to timer (started timer, function to run, edge triggered
 		timerAlarmWrite(isrTurnOffTimer, 1000 * isrTimeout, false); // Set timer alarm (timer, timrout in microseconds, autoreload)
