@@ -37,26 +37,42 @@
 const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
 
+
+#define useSerial true
+
+// Auto turn off delay
+const uint32_t isrTimeout = 600000; // Timeout in ms
+
+// Auto turn off timer
+hw_timer_t *isrTurnOffTimer = NULL; // Timer pointer
+
+// Coffee maker pin
+const uint8_t makerPin = 21;
+
+// Coffee heater pin
+const uint8_t heaterPin = 20;
+
 // Number of URLs that the user can access
-#define contentEntries 5 
+#define contentEntries 4
 
 // Define all avaliable web pages and resouce elements avaliable to the webserver
 const webContentEntry webContent[contentEntries] = {
 	{"/", 				"/index.html", 		HTMLfile, 	HTTP_GET},
 	{"/myScript.js", 	"/myScript.js", 	RESfile, 	HTTP_GET},
 	{"/styles.css", 	"/styles.css", 		RESfile, 	HTTP_GET},
-	{"/settings", 		"/settings.html", 	HTMLfile, 	HTTP_GET},
 	{"/api", 			"", 				API, 		HTTP_GET | HTTP_POST | HTTP_PUT}
 };
+
+// Callback function decleration
+void updateCM(uint8_t index);
 
 // Number of API keywords
 #define keywords 2
 
 // API keywords
-apiKeyword apiKeywords[] = {
-	{"coffeeState", "COFFEESTATE", BOOL, {.boolValue = false}},
-	{"time", "TIME", INT, {.intValue = 1000}},
-	{}
+apiKeyword apiKeywords[keywords] = {
+	{"coffeeState", "COFFEESTATE", BOOL, {.boolValue = false}, updateCM},
+	{"coffeeHeater", "COFFEEHEATER", BOOL, {.boolValue = false}, updateCM}
 };
 
 // Initialize the webManager class using the given webcontent, but without default API functionality
@@ -70,7 +86,53 @@ String processor(const String &var)  {
 	return webCoffee.APIbasedProcessor(var);
 }
 
-#define useSerial true
+// Timer interrupt for reattaching interrupt after delay
+void IRAM_ATTR autoTurnOffISR() {
+	digitalWrite(makerPin, LOW);
+	apiKeywords[0].keyValue.boolValue = false;
+	digitalWrite(heaterPin, LOW);
+	apiKeywords[1].keyValue.boolValue = false;
+}
+
+
+// Start auto turn off timer
+void startAutoTurnOffTimer() {
+	if (isrTurnOffTimer != NULL) {
+		isrTurnOffTimer = timerBegin(0, 80, true); // Initialize timer (Timer nr, clock divider, countup), timer counts every microsecond
+		timerAttachInterrupt(isrTurnOffTimer, autoTurnOffISR, true); // Attach isr to timer (started timer, function to run, edge triggered
+		timerAlarmWrite(isrTurnOffTimer, 1000 * isrTimeout, false); // Set timer alarm (timer, timrout in microseconds, autoreload)
+		timerAlarmEnable(isrTurnOffTimer); // Enable alarm
+	}
+}
+
+// Callback for variable change
+void updateCM(uint8_t index) {
+	if (apiKeywords[index].requestKeyword == "coffeeState") {
+		Serial.print("Coffee maker state now is: ");
+		Serial.println(apiKeywords[index].keyValue.boolValue);
+		if (apiKeywords[index].keyValue.boolValue) {
+			Serial.println("Starting coffee maker.");
+			digitalWrite(makerPin, HIGH);
+			startAutoTurnOffTimer();
+		} else {
+			Serial.println("Stopping coffee maker.");
+			digitalWrite(makerPin, LOW);
+		}
+	}
+
+	if (apiKeywords[index].requestKeyword == "coffeeHeater") {
+		Serial.print("Coffee heater state now is: ");
+		Serial.println(apiKeywords[index].keyValue.boolValue);
+		if (apiKeywords[index].keyValue.boolValue) {
+			Serial.println("Starting coffee heater.");
+			digitalWrite(heaterPin, HIGH);
+			startAutoTurnOffTimer();
+		} else {
+			Serial.println("Stopping coffee heater.");
+			digitalWrite(heaterPin, LOW);
+		}
+	}
+}
 
 // Start serial
 #ifdef useSerial

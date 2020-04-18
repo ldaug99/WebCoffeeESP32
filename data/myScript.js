@@ -2,17 +2,27 @@ HTTP_POST = "POST";
 HTTP_GET = "GET";
 
 function updateHTML() {
-	if (document.getElementById("coffeeButton").value == "coffeeState=0") {
-		document.getElementById("coffeeButton").innerHTML = "Start coffee maker";
-		document.getElementById("coffeeButton").value = "coffeeState=1"
-		document.getElementById("coffeeState").innerHTML = "Off"
+	// Coffee maker state
+	if (document.getElementById("coffeeMakerButton").value == "coffeeState=0") {
+		document.getElementById("coffeeMakerButton").innerHTML = "Start coffee maker";
+		document.getElementById("coffeeMakerButton").value = "coffeeState=1"
+		document.getElementById("coffeeStateTxt").innerHTML = "Off"
 	} else {
-		document.getElementById("coffeeButton").innerHTML = "Stop coffee maker";
-		document.getElementById("coffeeButton").value = "coffeeState=0"
-		document.getElementById("coffeeState").innerHTML = "On"
+		document.getElementById("coffeeMakerButton").innerHTML = "Stop coffee maker";
+		document.getElementById("coffeeMakerButton").value = "coffeeState=0"
+		document.getElementById("coffeeStateTxt").innerHTML = "On"
 	}
 
-
+	// Coffee heater state
+	if (document.getElementById("coffeeHeaterButton").value == "coffeeHeater=0") {
+		document.getElementById("coffeeHeaterButton").innerHTML = "Start coffee maker";
+		document.getElementById("coffeeHeaterButton").value = "coffeeHeater=1"
+		document.getElementById("coffeeHeaterTxt").innerHTML = "Off"
+	} else {
+		document.getElementById("coffeeHeaterButton").innerHTML = "Stop coffee maker";
+		document.getElementById("coffeeHeaterButton").value = "coffeeHeater=0"
+		document.getElementById("coffeeHeaterTxt").innerHTML = "On"
+	}
 }
 
 function apiReplyListener() {
@@ -25,12 +35,4 @@ function apiRequest(type, parameter) {
 	xmlHTTP.open(type, requestUrl, true);
 	xmlHTTP.onload = apiReplyListener();
 	xmlHTTP.send(null);
-}
-
-function goToIndex() {
-	window.location.href = window.location.hostname + "/";
-}
-
-function goToSettings() {
-	window.location.href = window.location.hostname + "/settings";
 }

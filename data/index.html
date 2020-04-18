@@ -13,17 +13,11 @@
 <body onload="updateHTML();">
 	<h1 id="header">WebCoffee Interface</h1>
 	<h2 id="subheader">Coffee maker settings</h2>
-	<p id="normalText">Current state: <span id="coffeeState">Off</span></p>
-	<button type="button" id="coffeeButton" value="coffeeState=%COFFEESTATE%" onclick="apiRequest(HTTP_POST, this.value);">Start coffee maker</button>
-	<h2 id="subheader">Alarm settings</h2>
-	<p>Set new alarm</p>
-	<form action="/action_page.php" method="get" id="form1">
-		<label for="fname">Alarm time:</label>
-		<input type="text" id="fname" name="fname"><br><br>
-	</form>
-	<button type="submit" form="form1" value="Submit">Submit</button>
-	<p></p>
-	<button type="button" onclick="goToSettings()">Go to settings</button>
+	
+	<p id="normalText">Current coffee maker state: <span id="coffeeStateTxt">Off</span></p>
+	<button type="button" id="coffeeMakerButton" value="coffeeState=%COFFEESTATE%" onclick="apiRequest(HTTP_POST, this.value);">Start coffee maker</button>
+
+	<p id="normalText">Current heater state: <span id="coffeeHeaterTxt">Off</span></p>
+	<button type="button" id="coffeeHeaterButton" value="coffeeHeater=%COFFEEHEATER%" onclick="apiRequest(HTTP_POST, this.value);">Start coffee heater</button>
 </body>
 </html>
-
