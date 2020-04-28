@@ -28,33 +28,26 @@
 
 // Include needed libraries
 #include <Arduino.h>
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <ESPmDNS.h>
 #include "ESPWebManager.h"
 
 // Define WiFi SSID and password
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
-
-
-#define useSerial true
+const char* ssid = "ssid";
+const char* password = "password";
 
 // Auto turn off delay
 const uint32_t isrTimeout = 600000; // Timeout in ms
-
 // Auto turn off timer
 hw_timer_t *isrTurnOffTimer = NULL; // Timer pointer
+// ISR mux
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 // Coffee maker pin
 const uint8_t makerPin = 21;
-
 // Coffee heater pin
-const uint8_t heaterPin = 20;
+const uint8_t heaterPin = 19;
 
 // Number of URLs that the user can access
 #define contentEntries 4
-
 // Define all avaliable web pages and resouce elements avaliable to the webserver
 const webContentEntry webContent[contentEntries] = {
 	{"/", 				"/index.html", 		HTMLfile, 	HTTP_GET},
@@ -64,20 +57,22 @@ const webContentEntry webContent[contentEntries] = {
 };
 
 // Callback function decleration
-void updateCM(uint8_t index);
+void updateCoffeeState();
+void updateCoffeeHeater();
 
 // Number of API keywords
 #define keywords 2
-
+// Variables accessable from the API
+bool coffeeState = false;
+bool coffeeHeater = false;
 // API keywords
 apiKeyword apiKeywords[keywords] = {
-	{"coffeeState", "COFFEESTATE", BOOL, {.boolValue = false}, updateCM},
-	{"coffeeHeater", "COFFEEHEATER", BOOL, {.boolValue = false}, updateCM}
+	{"coffeeState", "COFFEESTATE", pBOOL, &coffeeState, updateCoffeeState},
+	{"coffeeHeater", "COFFEEHEATER", pBOOL, &coffeeHeater, updateCoffeeHeater},
 };
 
-// Initialize the webManager class using the given webcontent, but without default API functionality
+// Initialize the webManager class using the given webcontent, but without API functionality
 //webManager webCoffee(webContent, contentEntries);
-
 // Initialize the webManager class, with the given webcontent and the given api keywords
 webManager webCoffee(webContent, contentEntries, apiKeywords, keywords);
 
@@ -88,15 +83,16 @@ String processor(const String &var)  {
 
 // Timer interrupt for reattaching interrupt after delay
 void IRAM_ATTR autoTurnOffISR() {
+	portEXIT_CRITICAL_ISR(&mux);
 	digitalWrite(makerPin, LOW);
-	apiKeywords[0].keyValue.boolValue = false;
+	coffeeState = false;
 	digitalWrite(heaterPin, LOW);
-	apiKeywords[1].keyValue.boolValue = false;
+	coffeeHeater = false;
 	timerEnd(isrTurnOffTimer);
 	isrTurnOffTimer = NULL;
+	portEXIT_CRITICAL_ISR(&mux);
 	Serial.println("Auto turn off triggered");
 }
-
 
 // Start auto turn off timer
 void startAutoTurnOffTimer() {
@@ -109,128 +105,51 @@ void startAutoTurnOffTimer() {
 	}
 }
 
-// Callback for variable change
-void updateCM(uint8_t index) {
-	if (apiKeywords[index].requestKeyword == "coffeeState") {
-		Serial.print("Coffee maker state now is: ");
-		Serial.println(apiKeywords[index].keyValue.boolValue);
-		if (apiKeywords[index].keyValue.boolValue) {
-			Serial.println("Starting coffee maker.");
-			digitalWrite(makerPin, HIGH);
-			startAutoTurnOffTimer();
-		} else {
-			Serial.println("Stopping coffee maker.");
-			digitalWrite(makerPin, LOW);
-		}
-	}
-
-	if (apiKeywords[index].requestKeyword == "coffeeHeater") {
-		Serial.print("Coffee heater state now is: ");
-		Serial.println(apiKeywords[index].keyValue.boolValue);
-		if (apiKeywords[index].keyValue.boolValue) {
-			Serial.println("Starting coffee heater.");
-			digitalWrite(heaterPin, HIGH);
-			startAutoTurnOffTimer();
-		} else {
-			Serial.println("Stopping coffee heater.");
-			digitalWrite(heaterPin, LOW);
-		}
+// Callback for coffeeState
+void updateCoffeeState() {
+	Serial.print("Coffee maker state now is: ");
+	Serial.println(coffeeState);
+	if (coffeeState) {
+		Serial.println("Starting coffee maker.");
+		digitalWrite(makerPin, HIGH);
+		startAutoTurnOffTimer();
+	} else {
+		Serial.println("Stopping coffee maker.");
+		digitalWrite(makerPin, LOW);
 	}
 }
 
-// Start serial
-#ifdef useSerial
-	void startSerial(uint32_t baudrate = 115200) {
-		Serial.begin(baudrate);
-	}
-#endif
-
-// Start SPIFFS
-uint8_t startSPIFFS() {
-	#ifdef useSerial
-		Serial.print("Starting SPIFFS...");
-	#endif
-	if (SPIFFS.begin(true)) {
-		#ifdef useSerial
-			Serial.println("Success!");
-		#endif
-		return 0;
+// Callback for coffeeHeater
+void updateCoffeeHeater() {
+	Serial.print("Coffee heater state now is: ");
+	Serial.println(coffeeHeater);
+	if (coffeeHeater) {
+		Serial.println("Starting coffee heater.");
+		digitalWrite(heaterPin, HIGH);
+		startAutoTurnOffTimer();
 	} else {
-		#ifdef useSerial
-			Serial.println("Failed!");
-		#endif
-		return 1;
-	}
-}
-
-// Start WiFi in client mode
-uint8_t startWIFIclient(const char* ssid, const char* password) {
-	#ifdef useSerial
-		Serial.print("Starting WiFi. ");
-	#endif
-	WiFi.mode(WIFI_STA); // Set WiFi mode to client
-	WiFi.begin(ssid, password); // Begin WiFi libaray
-	#ifdef useSerial
-		Serial.print("Connecting");
-	#endif
-	// Wait for connection
-	while (WiFi.status() != WL_CONNECTED) {
-		#ifdef useSerial
-			Serial.print(".");
-		#endif
-		delay(500); // Wait for a time
-	}
-	if (WiFi.status() == WL_CONNECTED) {
-		#ifdef useSerial
-			Serial.println("Success!");
-			Serial.print("Connected to ");
-			Serial.println(ssid);
-			Serial.print("IP address: ");
-			Serial.println(WiFi.localIP());
-		#endif
-		return 0;
-	} else {
-		return 1;
-	}	
-}
-
-// Start MDNS responder
-uint8_t startMDNS(const char* hostname) {
-	#ifdef useSerial
-		Serial.print("Starting MDNS responder...");
-	#endif
-	if (MDNS.begin(hostname)) {
-		#ifdef useSerial
-			Serial.println("Success!");
-		#endif
-		return 0;
-	} else {
-		#ifdef useSerial
-			Serial.println("Failed!");
-		#endif
-		return 1;
+		Serial.println("Stopping coffee heater.");
+		digitalWrite(heaterPin, LOW);
 	}
 }
 
 // Setup
 void setup(void) {
 	// Start serial communication
-	#ifdef useSerial
-		startSerial();
-	#endif
+	Serial.begin(115200);
 	// Start SPIFFS (for managaing website files)
-	startSPIFFS();
+	webCoffee.startSPIFFS();
 	// Start WiFi and connect to SSID
-	startWIFIclient(ssid, password);
+	webCoffee.startWIFIclient(ssid, password);
 	// Start MDNS responder
-	startMDNS("esp32");
+	webCoffee.startMDNS("esp32");
 	// Add API based HTML processer to webManager
 	webCoffee.setHTMLprocessor(processor);
 	// Start webManager
 	webCoffee.begin();
-	#ifdef useSerial
-		Serial.println("HTTP server started");
-	#endif
+	Serial.println("HTTP server started");
+	pinMode(makerPin, OUTPUT);
+	pinMode(heaterPin, OUTPUT);
 }
 
 // Loop
